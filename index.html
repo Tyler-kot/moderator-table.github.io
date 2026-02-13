@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>МЧС • смены (с сохранением)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+        }
+
+        /* Переливающийся чёрно-фиолетовый фон */
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(-45deg, #0f001a, #1f0033, #2e0047, #180029, #0a0010);
+            background-size: 400% 400%;
+            animation: gradientFlow 14s ease infinite;
+            padding: 20px;
+            margin: 0;
+        }
+
+        @keyframes gradientFlow {
+            0% { background-position: 0% 0%; }
+            50% { background-position: 100% 100%; }
+            100% { background-position: 0% 0%; }
+        }
+
+        .glass-panel {
+            background: rgba(12, 3, 22, 0.7);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(170, 120, 255, 0.3);
+            border-radius: 48px;
+            padding: 30px 25px;
+            width: fit-content;
+            max-width: 1400px;
+            width: 100%;
+            box-shadow: 0 30px 60px -10px black, 0 0 0 1px #7b46d4 inset;
+        }
+
+        h1 {
+            text-align: center;
+            font-weight: 400;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #f2e2ff;
+            text-shadow: 0 0 12px #b180ff, 0 0 30px #8833cc;
+            margin-bottom: 25px;
+            font-size: 2.2rem;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: 30px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #8244cc60;
+            margin-bottom: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1000px;
+            color: #f0e4ff;
+        }
+
+        th {
+            background: rgba(42, 0, 67, 0.7);
+            backdrop-filter: blur(4px);
+            font-weight: 500;
+            padding: 18px 10px;
+            font-size: 1rem;
+            border-bottom: 2px solid #ac72ff;
+            color: #f0dcff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 16px 8px;
+            text-align: center;
+            border-bottom: 1px dashed #8d58c060;
+            font-size: 1rem;
+        }
+
+        td:first-child {
+            font-weight: 600;
+            color: #fff;
+            text-shadow: 0 0 6px #b180ff;
+            background: rgba(20, 0, 35, 0.5);
+            border-right: 1px solid #a971ff60;
+            text-align: left;
+            padding-left: 20px;
+        }
+
+        .roles-cell {
+            max-width: 320px;
+            white-space: normal;
+            word-break: break-word;
+            line-height: 1.5;
+            color: #dbbdff;
+            font-size: 0.95rem;
+            border-right: 1px solid #a56eff60;
+        }
+
+        .role-badge {
+            display: inline-block;
+            background: rgba(157, 0, 255, 0.25);
+            border: 1px solid #b77aff;
+            border-radius: 30px;
+            padding: 3px 12px;
+            margin: 3px 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #f3dcff;
+            box-shadow: 0 0 6px #ab6eff;
+        }
+
+        .shift-mark {
+            color: #ff66f0;
+            font-weight: 900;
+            font-size: 2rem;
+            line-height: 1;
+            text-shadow: 0 0 20px #f0f;
+        }
+
+        /* СЕКРЕТНАЯ КНОПКА: чёрный квадрат в левом верхнем углу, почти невидимый */
+        .secret-trigger {
+            position: fixed;
+            top: 8px;
+            left: 8px;
+            width: 18px;
+            height: 18px;
+            background: black;
+            border: 1px solid #2a003f;
+            opacity: 0.25;
+            cursor: pointer;
+            z-index: 9999;
+            border-radius: 2px;
+        }
+        .secret-trigger:hover {
+            opacity: 0.8;
+            background: #3d0052;
+        }
+
+        .add-panel {
+            background: rgba(28, 7, 42, 0.7);
+            backdrop-filter: blur(8px);
+            border-radius: 50px;
+            padding: 30px;
+            border: 1px solid #b26bff80;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 25px;
+        }
+
+        .input-group {
+            flex: 2 1 260px;
+        }
+
+        .input-group label {
+            display: block;
+            color: #dcc5ff;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+        }
+
+        .input-group input, .input-group select, .multi-select {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #b05aff;
+            border-radius: 60px;
+            padding: 16px 22px;
+            font-size: 1rem;
+            color: #f3e8ff;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        .input-group select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23c394ff' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>");
+            background-repeat: no-repeat;
+            background-position: right 22px center;
+        }
+
+        .multi-select {
+            border-radius: 30px;
+            padding: 12px 20px;
+            height: auto;
+            min-height: 60px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.6);
+            cursor: pointer;
+        }
+
+        .role-option {
+            background: rgba(110, 0, 160, 0.5);
+            border: 1px solid #c47aff;
+            border-radius: 40px;
+            padding: 5px 16px;
+            font-size: 0.9rem;
+            color: #f0dbff;
+            transition: 0.1s;
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        .role-option.selected {
+            background: #9b4dff;
+            border-color: #f5cbff;
+            color: white;
+            box-shadow: 0 0 12px #e79eff;
+        }
+
+        .hidden-checkboxes {
+            display: none;
+        }
+
+        .btn-primary {
+            background: #732ab0;
+            border: none;
+            border-radius: 60px;
+            padding: 16px 50px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #f2dcff;
+            text-transform: uppercase;
+            letter-spacing: 1.7px;
+            cursor: pointer;
+            box-shadow: 0 0 25px #b46aff;
+            transition: 0.2s;
+            border: 1px solid #d9a9ff;
+            flex: 1 0 auto;
+        }
+
+        .btn-primary:hover {
+            background: #9f4be6;
+            box-shadow: 0 0 40px #ddb0ff;
+            color: white;
+            transform: scale(1.02);
+        }
+
+        /* Админ-панель (скрыта по умолчанию) */
+        .admin-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(5px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .admin-card {
+            background: #140a22;
+            border: 3px solid #b77aff;
+            border-radius: 60px;
+            padding: 40px;
+            max-width: 800px;
+            width: 95%;
+            color: #f0e0ff;
+            box-shadow: 0 0 80px #aa44ff;
+        }
+
+        .admin-card h2 {
+            color: #f2daff;
+            border-bottom: 2px solid #ad6cff;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        .flex-row {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 25px;
+        }
+
+        .flex-col {
+            flex: 1 1 250px;
+        }
+
+        .admin-card select, .admin-card input {
+            background: #2f1945;
+            border: 1px solid #b77aff;
+            border-radius: 40px;
+            padding: 14px 20px;
+            width: 100%;
+            color: white;
+            font-size: 1rem;
+        }
+
+        .current-roles {
+            background: #1f0e2e;
+            border-radius: 40px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid #a86eff;
+        }
+
+        .role-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+            align-items: center;
+        }
+
+        .role-chip {
+            background: rgba(180, 130, 255, 0.2);
+            border: 1px solid #c58cff;
+            border-radius: 40px;
+            padding: 8px 18px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .remove-role {
+            background: none;
+            border: none;
+            color: #ffa0d0;
+            font-size: 1.4rem;
+            cursor: pointer;
+            padding: 0 5px;
+            line-height: 1;
+            border-radius: 50%;
+        }
+
+        .remove-role:hover {
+            color: #ff4d9e;
+            text-shadow: 0 0 8px red;
+        }
+
+        .add-role-section {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        .add-role-section select {
+            flex: 3 1 250px;
+            background: #2f1945;
+        }
+
+        .small-btn {
+            background: #5f2a9c;
+            border: none;
+            border-radius: 60px;
+            padding: 14px 25px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            border: 1px solid #c394ff;
+            transition: 0.2s;
+            flex: 1 0 auto;
+        }
+
+        .small-btn:hover {
+            background: #8c4cd6;
+        }
+
+        .admin-actions {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 30px;
+        }
+
+        .admin-btn {
+            background: #450074;
+            border: none;
+            border-radius: 50px;
+            padding: 14px 28px;
+            font-weight: bold;
+            color: #f0dcff;
+            cursor: pointer;
+            border: 1px solid #c58cff;
+            transition: 0.2s;
+            flex: 1;
+        }
+
+        .admin-btn.danger {
+            background: #6b002f;
+            border-color: #ff8acd;
+        }
+
+        .admin-btn:hover {
+            filter: brightness(1.3);
+            box-shadow: 0 0 20px #f3b9ff;
+        }
+
+        .close-admin {
+            float: right;
+            font-size: 2rem;
+            cursor: pointer;
+            color: #d8aaff;
+        }
+    </style>
+</head>
+<body>
+    <!-- СЕКРЕТНАЯ КНОПКА: чёрный квадрат в левом верхнем углу (подсказка только для тебя) -->
+    <div class="secret-trigger" id="secretAdminBtn" title=""></div>
+
+    <div class="glass-panel">
+        <h1>⚡ МЧС • КАРТА СМЕН ⚡</h1>
+
+        <div class="table-responsive">
+            <table id="shiftTable">
+                <thead>
+                    <tr>
+                        <th>Сотрудник</th>
+                        <th>Роль / звание</th>
+                        <th>00:00–04:00</th>
+                        <th>08:00–12:00</th>
+                        <th>12:00–16:00</th>
+                        <th>16:00–20:00</th>
+                        <th>20:00–00:00</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- пусто -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Панель добавления -->
+        <div class="add-panel">
+            <div class="input-group">
+                <label>👤 Имя</label>
+                <input type="text" id="newName" placeholder="Никнейм в Discord">
+            </div>
+            
+            <div class="input-group" style="flex: 3 1 360px;">
+                <label>🎖️ Роли (выбери несколько)</label>
+                <div id="roleSelector" class="multi-select" tabindex="0">
+                    <span style="opacity:0.6; color:#c3a0ff;">Кликни, чтобы выбрать роли...</span>
+                </div>
+                <div id="roleCheckboxes" class="hidden-checkboxes"></div>
+            </div>
+
+            <div class="input-group">
+                <label>⏰ Смена</label>
+                <select id="shiftSelect">
+                    <option value="0">00:00 – 04:00</option>
+                    <option value="1">08:00 – 12:00</option>
+                    <option value="2">12:00 – 16:00</option>
+                    <option value="3">16:00 – 20:00</option>
+                    <option value="4">20:00 – 00:00</option>
+                </select>
+            </div>
+            <button class="btn-primary" id="confirmAddBtn">✚ Подтвердить</button>
+        </div>
+        <!-- Никаких подсказок про админку -->
+    </div>
+
+    <!-- Админ-панель -->
+    <div id="adminOverlay" class="admin-overlay">
+        <div class="admin-card">
+            <span class="close-admin" id="closeAdminBtn">&times;</span>
+            <h2>🛠️ ПАНЕЛЬ УПРАВЛЕНИЯ</h2>
+            
+            <div class="flex-row">
+                <div class="flex-col">
+                    <label>👥 Сотрудник</label>
+                    <select id="adminEmployeeSelect">
+                        <option value="">— пусто —</option>
+                    </select>
+                </div>
+                <div class="flex-col">
+                    <label>⏱️ Смена</label>
+                    <select id="adminShiftSelect">
+                        <option value="">— без изменений —</option>
+                        <option value="0">00:00–04:00</option>
+                        <option value="1">08:00–12:00</option>
+                        <option value="2">12:00–16:00</option>
+                        <option value="3">16:00–20:00</option>
+                        <option value="4">20:00–00:00</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Текущие роли с удалением -->
+            <div class="current-roles" id="currentRolesContainer">
+                <strong>🎯 Текущие роли:</strong>
+                <div id="currentRolesList" class="role-list">
+                    <span style="opacity:0.7;">выберите сотрудника</span>
+                </div>
+            </div>
+
+            <!-- Добавление новой роли -->
+            <div class="add-role-section">
+                <select id="adminAddRoleSelect">
+                    <option value="">— выберите роль —</option>
+                    <option value="Новобранец МЧС">Новобранец МЧС</option>
+                    <option value="Ликвидатор МЧС">Ликвидатор МЧС</option>
+                    <option value="Надзиратель">Надзиратель</option>
+                    <option value="Секретарь Главы МЧС">Секретарь Главы МЧС</option>
+                    <option value="Глава МЧС">Глава МЧС</option>
+                    <option value="Локальный Администратор">Локальный Администратор</option>
+                    <option value="Глава Администраторов">Глава Администраторов</option>
+                </select>
+                <button class="small-btn" id="adminAddRoleBtn">➕ Добавить роль</button>
+            </div>
+
+            <div class="admin-actions">
+                <button class="admin-btn" id="adminUpdateShiftBtn">💾 Обновить смену</button>
+                <button class="admin-btn danger" id="adminDeleteBtn">🗑️ Удалить сотрудника</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // --- СПИСОК ДОСТУПНЫХ РОЛЕЙ ---
+            const ALL_ROLES = [
+                "Новобранец МЧС",
+                "Ликвидатор МЧС",
+                "Надзиратель",
+                "Секретарь Главы МЧС",
+                "Глава МЧС",
+                "Локальный Администратор",
+                "Глава Администраторов"
+            ];
+
+            // --- ЗАГРУЗКА ИЗ LOCALSTORAGE, ЕСЛИ ЕСТЬ ---
+            let employees = [];
+            try {
+                const saved = localStorage.getItem('mchsEmployees');
+                if (saved) {
+                    employees = JSON.parse(saved);
+                }
+            } catch (e) {}
+
+            // --- ЭЛЕМЕНТЫ ---
+            const tbody = document.getElementById('tableBody');
+            const newName = document.getElementById('newName');
+            const shiftSelect = document.getElementById('shiftSelect');
+            const confirmAdd = document.getElementById('confirmAddBtn');
+            const roleSelectorDiv = document.getElementById('roleSelector');
+            const roleCheckboxesDiv = document.getElementById('roleCheckboxes');
+
+            // Админ-элементы
+            const adminBtn = document.getElementById('secretAdminBtn');
+            const adminOverlay = document.getElementById('adminOverlay');
+            const closeAdmin = document.getElementById('closeAdminBtn');
+            const adminEmployeeSelect = document.getElementById('adminEmployeeSelect');
+            const adminShiftSelect = document.getElementById('adminShiftSelect');
+            const adminUpdateShift = document.getElementById('adminUpdateShiftBtn');
+            const adminDelete = document.getElementById('adminDeleteBtn');
+            const adminAddRoleSelect = document.getElementById('adminAddRoleSelect');
+            const adminAddRoleBtn = document.getElementById('adminAddRoleBtn');
+            const currentRolesList = document.getElementById('currentRolesList');
+
+            // --- Переменные для кастомного селектора ---
+            let selectedRoles = [];
+
+            // --- СОХРАНЕНИЕ В LOCALSTORAGE ---
+            function saveToStorage() {
+                localStorage.setItem('mchsEmployees', JSON.stringify(employees));
+            }
+
+            // --- ПОСТРОЕНИЕ КАСТОМНОГО СЕЛЕКТОРА РОЛЕЙ ---
+            function buildRoleSelector() {
+                roleSelectorDiv.innerHTML = ''; 
+                roleCheckboxesDiv.innerHTML = ''; 
+                ALL_ROLES.forEach(role => {
+                    const id = `role_${role.replace(/\s/g,'_')}`;
+                    const cb = document.createElement('input');
+                    cb.type = 'checkbox';
+                    cb.value = role;
+                    cb.id = id;
+                    cb.style.display = 'none';
+                    cb.classList.add('role-checkbox');
+                    roleCheckboxesDiv.appendChild(cb);
+
+                    const badge = document.createElement('span');
+                    badge.classList.add('role-option');
+                    badge.textContent = role;
+                    badge.setAttribute('data-role', role);
+                    badge.setAttribute('data-target', id);
+                    badge.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const checkbox = document.getElementById(this.getAttribute('data-target'));
+                        checkbox.checked = !checkbox.checked;
+                        this.classList.toggle('selected', checkbox.checked);
+                        updateSelectedRolesArray();
+                    });
+                    roleSelectorDiv.appendChild(badge);
+                });
+            }
+
+            function updateSelectedRolesArray() {
+                selectedRoles = [];
+                document.querySelectorAll('.role-checkbox').forEach(cb => {
+                    if (cb.checked) selectedRoles.push(cb.value);
+                });
+            }
+
+            function syncRoleSelectionUI() {
+                document.querySelectorAll('.role-option').forEach(opt => {
+                    const cb = document.getElementById(opt.getAttribute('data-target'));
+                    if (cb) opt.classList.toggle('selected', cb.checked);
+                });
+                updateSelectedRolesArray();
+            }
+
+            // --- ОБНОВЛЕНИЕ ВЫПАДАЮЩЕГО СПИСКА СОТРУДНИКОВ В АДМИНКЕ ---
+            function refreshAdminEmployeeSelect() {
+                adminEmployeeSelect.innerHTML = '<option value="">— выберите сотрудника —</option>';
+                employees.forEach((emp, idx) => {
+                    const opt = document.createElement('option');
+                    opt.value = idx;
+                    opt.textContent = `${emp.name} (${emp.roles.length} ролей)`;
+                    adminEmployeeSelect.appendChild(opt);
+                });
+                currentRolesList.innerHTML = '<span style="opacity:0.7;">выберите сотрудника</span>';
+                adminAddRoleSelect.value = '';
+            }
+
+            // --- ОТОБРАЗИТЬ РОЛИ ВЫБРАННОГО СОТРУДНИКА (с кнопками удаления) ---
+            function displayCurrentRoles(empIdx) {
+                if (empIdx === '' || empIdx === null || employees.length === 0 || empIdx >= employees.length) {
+                    currentRolesList.innerHTML = '<span style="opacity:0.7;">выберите сотрудника</span>';
+                    return;
+                }
+                const emp = employees[empIdx];
+                if (!emp || !emp.roles) return;
+
+                if (emp.roles.length === 0) {
+                    currentRolesList.innerHTML = '<span style="opacity:0.7;">нет ролей</span>';
+                    return;
+                }
+
+                currentRolesList.innerHTML = '';
+                emp.roles.forEach((role, idx) => {
+                    const chip = document.createElement('span');
+                    chip.classList.add('role-chip');
+                    chip.innerHTML = `${role} <button class="remove-role" data-role-index="${idx}" title="Удалить роль">✕</button>`;
+                    currentRolesList.appendChild(chip);
+                });
+
+                document.querySelectorAll('.remove-role').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const roleIdx = this.getAttribute('data-role-index');
+                        const empIdx = adminEmployeeSelect.value;
+                        if (empIdx === '') return;
+                        removeRoleFromEmployee(parseInt(empIdx), parseInt(roleIdx));
+                    });
+                });
+            }
+
+            // --- УДАЛИТЬ РОЛЬ У СОТРУДНИКА ---
+            function removeRoleFromEmployee(empIdx, roleIdx) {
+                if (empIdx === undefined || empIdx < 0 || empIdx >= employees.length) return;
+                const emp = employees[empIdx];
+                if (roleIdx >= 0 && roleIdx < emp.roles.length) {
+                    emp.roles.splice(roleIdx, 1);
+                    renderTable();
+                    displayCurrentRoles(empIdx);
+                    saveToStorage();
+                }
+            }
+
+            // --- ДОБАВИТЬ РОЛЬ СОТРУДНИКУ ---
+            function addRoleToEmployee(empIdx, newRole) {
+                if (empIdx === '' || empIdx < 0 || empIdx >= employees.length) {
+                    alert('Сначала выберите сотрудника');
+                    return false;
+                }
+                if (!newRole) {
+                    alert('Выберите роль для добавления');
+                    return false;
+                }
+                const emp = employees[empIdx];
+                if (emp.roles.includes(newRole)) {
+                    alert('У сотрудника уже есть эта роль');
+                    return false;
+                }
+                emp.roles.push(newRole);
+                renderTable();
+                displayCurrentRoles(empIdx);
+                adminAddRoleSelect.value = '';
+                saveToStorage();
+                return true;
+            }
+
+            // --- ОТРИСОВКА ТАБЛИЦЫ ---
+            function renderTable() {
+                tbody.innerHTML = '';
+                if (employees.length === 0) {
+                    return;
+                }
+                employees.forEach((emp, index) => {
+                    const row = document.createElement('tr');
+                    const tdName = document.createElement('td');
+                    tdName.textContent = emp.name;
+                    row.appendChild(tdName);
+
+                    const tdRoles = document.createElement('td');
+                    tdRoles.classList.add('roles-cell');
+                    if (emp.roles && emp.roles.length) {
+                        emp.roles.forEach(role => {
+                            const span = document.createElement('span');
+                            span.classList.add('role-badge');
+                            span.textContent = role;
+                            tdRoles.appendChild(span);
+                        });
+                    } else {
+                        tdRoles.textContent = '—';
+                    }
+                    row.appendChild(tdRoles);
+
+                    for (let i = 0; i < 5; i++) {
+                        const cell = document.createElement('td');
+                        if (emp.shift === i) {
+                            cell.textContent = '✖';
+                            cell.classList.add('shift-mark');
+                        } else {
+                            cell.textContent = '—';
+                        }
+                        row.appendChild(cell);
+                    }
+                    tbody.appendChild(row);
+                });
+                refreshAdminEmployeeSelect();
+            }
+
+            // --- ДОБАВЛЕНИЕ НОВОГО СОТРУДНИКА ---
+            function addEmployee() {
+                const name = newName.value.trim();
+                if (!name) { alert('Введите имя'); return; }
+                if (selectedRoles.length === 0) { alert('Выберите хотя бы одну роль'); return; }
+                const shift = parseInt(shiftSelect.value, 10);
+                employees.push({ name: name, roles: [...selectedRoles], shift: shift });
+                newName.value = '';
+                document.querySelectorAll('.role-checkbox').forEach(cb => cb.checked = false);
+                syncRoleSelectionUI();
+                selectedRoles = [];
+                renderTable();
+                saveToStorage();
+            }
+
+            // --- ИНИЦИАЛИЗАЦИЯ ---
+            buildRoleSelector();
+            syncRoleSelectionUI();
+            renderTable();
+
+            // --- СОБЫТИЯ: добавление ---
+            confirmAdd.addEventListener('click', addEmployee);
+            newName.addEventListener('keypress', (e) => { if (e.key === 'Enter') confirmAdd.click(); });
+
+            // --- СЕКРЕТНАЯ КНОПКА (открыть админку) ---
+            adminBtn.addEventListener('click', () => {
+                adminOverlay.style.display = 'flex';
+                refreshAdminEmployeeSelect();
+                adminShiftSelect.value = '';
+                adminAddRoleSelect.value = '';
+                currentRolesList.innerHTML = '<span style="opacity:0.7;">выберите сотрудника</span>';
+            });
+
+            closeAdmin.addEventListener('click', () => { adminOverlay.style.display = 'none'; });
+            adminOverlay.addEventListener('click', (e) => { if (e.target === adminOverlay) adminOverlay.style.display = 'none'; });
+
+            // --- ВЫБОР СОТРУДНИКА В АДМИНКЕ ---
+            adminEmployeeSelect.addEventListener('change', function() {
+                const idx = this.value;
+                if (idx !== '') {
+                    displayCurrentRoles(parseInt(idx));
+                } else {
+                    currentRolesList.innerHTML = '<span style="opacity:0.7;">выберите сотрудника</span>';
+                }
+            });
+
+            // --- УДАЛЕНИЕ СОТРУДНИКА ---
+            adminDelete.addEventListener('click', () => {
+                const idx = adminEmployeeSelect.value;
+                if (idx === '' || employees.length === 0) { alert('Нет сотрудников'); return; }
+                if (confirm(`Удалить ${employees[idx].name}?`)) {
+                    employees.splice(parseInt(idx), 1);
+                    renderTable();
+                    saveToStorage();
+                    adminOverlay.style.display = 'none';
+                }
+            });
+
+            // --- ОБНОВИТЬ ТОЛЬКО СМЕНУ ---
+            adminUpdateShift.addEventListener('click', () => {
+                const idx = adminEmployeeSelect.value;
+                if (idx === '' || employees.length === 0) { alert('Выберите сотрудника'); return; }
+                const newShift = adminShiftSelect.value;
+                if (newShift === '') { alert('Выберите смену'); return; }
+                employees[parseInt(idx)].shift = parseInt(newShift, 10);
+                renderTable();
+                saveToStorage();
+                adminOverlay.style.display = 'none';
+            });
+
+            // --- ДОБАВИТЬ РОЛЬ ---
+            adminAddRoleBtn.addEventListener('click', () => {
+                const empIdx = adminEmployeeSelect.value;
+                const newRole = adminAddRoleSelect.value;
+                addRoleToEmployee(parseInt(empIdx), newRole);
+            });
+
+        })();
+    </script>
+</body>
+</html>
